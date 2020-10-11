@@ -1,0 +1,21 @@
+initialprocess
+
+vm.c inituvm():
+- mappages(pgdir, (void*) 0x2000, PGSIZE, PADDR(mem), PTE_W|PTE_U);
+
+proc.c
+userinit():
+p->sz = PGSIZE+0x2000;
+p->tf->esp = PGSIZE+0x2000;
+p->tf->eip = 0x2000;  // beginning of initcode.S
+
+objdump -d fs/fault | less
+
+exec.c
+exec()
+sz = 0x2000;
+
+fork calls copyuvm
+vm.c
+copyuvm()
+for(i = 0x2000; i < sz; i += PGSIZE){
