@@ -16,6 +16,7 @@ exec(char *path, char **argv)
   struct inode *ip;
   struct proghdr ph;
   pde_t *pgdir, *oldpgdir;
+  cprintf("test\n"); // P3B
 
   if((ip = namei(path)) == 0)
     return -1;
@@ -31,8 +32,9 @@ exec(char *path, char **argv)
   if((pgdir = setupkvm()) == 0)
     goto bad;
 
+  // cprintf("before load\n"); // P3B
   // Load program into memory.
-  sz = 0;
+  sz = 0x2000; // P3B
   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
     if(readi(ip, (char*)&ph, off, sizeof(ph)) != sizeof(ph))
       goto bad;
@@ -42,11 +44,14 @@ exec(char *path, char **argv)
       goto bad;
     if((sz = allocuvm(pgdir, sz, ph.va + ph.memsz)) == 0)
       goto bad;
+    // cprintf("ph.va: %x, offset: %d, filesz: %d\n", (char*)ph.va, ph.offset, ph.filesz); // P3B
     if(loaduvm(pgdir, (char*)ph.va, ip, ph.offset, ph.filesz) < 0)
       goto bad;
   }
   iunlockput(ip);
   ip = 0;
+  
+  // cprintf("afterload\n"); // P3B
 
   // Allocate a one-page stack at the next page boundary
   sz = PGROUNDUP(sz);
