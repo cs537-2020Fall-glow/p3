@@ -29,3 +29,6 @@ USER_LDFLAGS += --section-start=.text=0x2000
 
 
 Part II
+stackSize
+allocuvm(pgdir,USERTOP-PGSIZE,PGSIZE)
+sp = stackSize

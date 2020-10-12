@@ -16,7 +16,7 @@ exec(char *path, char **argv)
   struct inode *ip;
   struct proghdr ph;
   pde_t *pgdir, *oldpgdir;
-  cprintf("test\n"); // P3B
+  // cprintf("test\n"); // P3B
 
   if((ip = namei(path)) == 0)
     return -1;
