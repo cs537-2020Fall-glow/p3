@@ -84,21 +84,24 @@ userinit(void)
   if((p->pgdir = setupkvm()) == 0)
     panic("userinit: out of memory?");
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
-  p->sz = PGSIZE;
+  p->sz = PGSIZE+0x2000; // P3B
   memset(p->tf, 0, sizeof(*p->tf));
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
   p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
   p->tf->es = p->tf->ds;
   p->tf->ss = p->tf->ds;
   p->tf->eflags = FL_IF;
-  p->tf->esp = PGSIZE;
-  p->tf->eip = 0;  // beginning of initcode.S
-
+  p->tf->esp = PGSIZE+0x2000; // P3B
+  p->tf->eip = 0x2000;  // beginning of initcode.S // P3B
+  cprintf("1\n"); // P3B
+  
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
+  cprintf("2\n"); // P3B
 
   p->state = RUNNABLE;
   release(&ptable.lock);
+  cprintf("3\n"); // P3B
 }
 
 // Grow current process's memory by n bytes.
@@ -127,6 +130,7 @@ growproc(int n)
 int
 fork(void)
 {
+  cprintf("test\n"); // P3B
   int i, pid;
   struct proc *np;
 
