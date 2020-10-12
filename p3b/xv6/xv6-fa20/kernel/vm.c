@@ -197,7 +197,7 @@ inituvm(pde_t *pgdir, char *init, uint sz)
   memset(mem, 0, PGSIZE);
   mappages(pgdir, (void*) 0x2000, PGSIZE, PADDR(mem), PTE_W|PTE_U); // P3B
   memmove(mem, init, sz);
-  cprintf("testinit\n"); // P3B
+  // cprintf("testinit\n"); // P3B
 }
 
 // Load a program segment into pgdir.  addr must be page-aligned
@@ -211,6 +211,7 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
   if((uint)addr % PGSIZE != 0)
     panic("loaduvm: addr must be page aligned");
   for(i = 0; i < sz; i += PGSIZE){ // P3B
+    // cprintf("%x\n",addr+i); // P3B
     if((pte = walkpgdir(pgdir, addr+i, 0)) == 0)
       panic("loaduvm: address should exist");
     pa = PTE_ADDR(*pte);
@@ -221,7 +222,7 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
     if(readi(ip, (char*)pa, offset+i, n) != n)
       return -1;
   }
-  cprintf("testcopy\n"); // P3B
+  // cprintf("testload\n"); // P3B
   return 0;
 }
 
@@ -238,7 +239,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   if(newsz < oldsz)
     return oldsz;
   
-  cprintf("testalloc\n"); // P3B
+  // cprintf("testalloc\n"); // P3B
 
   a = PGROUNDUP(oldsz);
   for(; a < newsz; a += PGSIZE){
@@ -251,7 +252,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
     memset(mem, 0, PGSIZE);
     mappages(pgdir, (char*)a, PGSIZE, PADDR(mem), PTE_W|PTE_U);
   }
-  cprintf("testalloc\n"); // P3B
+  // cprintf("testalloc\n"); // P3B
   return newsz;
 }
 
@@ -308,7 +309,7 @@ copyuvm(pde_t *pgdir, uint sz)
   pte_t *pte;
   uint pa, i;
   char *mem;
-  cprintf("testcopy\n"); // P3B
+  // cprintf("testcopy\n"); // P3B
 
   if((d = setupkvm()) == 0)
     return 0;
@@ -324,7 +325,7 @@ copyuvm(pde_t *pgdir, uint sz)
     if(mappages(d, (void*)i, PGSIZE, PADDR(mem), PTE_W|PTE_U) < 0)
       goto bad;
   }
-  cprintf("testcopy\n"); // P3B
+  // cprintf("testcopy\n"); // P3B
   return d;
 
 bad:
