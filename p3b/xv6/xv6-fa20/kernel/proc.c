@@ -139,6 +139,7 @@ fork(void)
     return -1;
 
   // Copy process state from p.
+  // P3B - copy code and heap
   if((np->pgdir = copyuvm(proc->pgdir, proc->sz)) == 0){
     kfree(np->kstack);
     np->kstack = 0;
@@ -146,6 +147,15 @@ fork(void)
     return -1;
   }
   np->sz = proc->sz;
+  // // P3B - copy stack
+  // if((np->pgdir = copyStackUvm(proc->pgdir, proc->stackLow)) == 0){
+  //   kfree(np->kstack);
+  //   np->kstack = 0;
+  //   np->state = UNUSED;
+  //   return -1;
+  // }
+  np->stackLow = proc->stackLow;
+  // cprintf("fork np->stackLow: %x\n", np->stackLow); // P3B debug
   np->parent = proc;
   *np->tf = *proc->tf;
 
@@ -160,6 +170,9 @@ fork(void)
   pid = np->pid;
   np->state = RUNNABLE;
   safestrcpy(np->name, proc->name, sizeof(proc->name));
+  
+  // P3 debugging
+  cprintf("fork() pid: %d, np->name: %s, np->tf->eax: %d\n", pid, np->name, np->tf->eax); // P3 debug
   return pid;
 }
 

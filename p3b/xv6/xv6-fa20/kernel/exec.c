@@ -52,19 +52,28 @@ exec(char *path, char **argv)
   ip = 0;
   
   // cprintf("afterload\n"); // P3B
-
+  
   // Allocate a one-page stack at the next page boundary
+  // P3B
+  uint stackLow, stackHigh;
+  stackLow = USERTOP-PGSIZE;
+  cprintf("%x\n",stackLow);
   sz = PGROUNDUP(sz);
-  if((sz = allocuvm(pgdir, sz, sz + PGSIZE)) == 0)
+  cprintf("%x\n",stackLow);
+  if((stackHigh = allocuvm(pgdir, stackLow, USERTOP)) == 0)
     goto bad;
+  cprintf("%x\n",stackLow);
+  cprintf("%x\n",stackHigh);
 
   // Push argument strings, prepare rest of stack in ustack.
-  sp = sz;
+  // P3B
+  sp = stackHigh;
   for(argc = 0; argv[argc]; argc++) {
     if(argc >= MAXARG)
       goto bad;
     sp -= strlen(argv[argc]) + 1;
     sp &= ~3;
+    cprintf("argc: %d, sp: %x\n", argc, sp);
     if(copyout(pgdir, sp, argv[argc], strlen(argv[argc]) + 1) < 0)
       goto bad;
     ustack[3+argc] = sp;
@@ -89,10 +98,17 @@ exec(char *path, char **argv)
   oldpgdir = proc->pgdir;
   proc->pgdir = pgdir;
   proc->sz = sz;
+  proc->stackLow = stackLow; // P3B
   proc->tf->eip = elf.entry;  // main
   proc->tf->esp = sp;
   switchuvm(proc);
   freevm(oldpgdir);
+  
+  // P3B - testing
+  cprintf("sp: %x\n", sp);
+  // cprintf("ustack[0]: %x\n", &ustack[0]);
+  // cprintf("ustack[1]: %x\n", &ustack[1]);
+  // cprintf("ustack[2]: %x\n", &ustack[2]);
 
   return 0;
 

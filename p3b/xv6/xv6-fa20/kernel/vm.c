@@ -310,7 +310,8 @@ copyuvm(pde_t *pgdir, uint sz)
   uint pa, i;
   char *mem;
   // cprintf("testcopy\n"); // P3B
-
+  
+  // P3B - copy code segment
   if((d = setupkvm()) == 0)
     return 0;
   for(i = 0x2000; i < sz; i += PGSIZE){ // P3B
@@ -325,6 +326,22 @@ copyuvm(pde_t *pgdir, uint sz)
     if(mappages(d, (void*)i, PGSIZE, PADDR(mem), PTE_W|PTE_U) < 0)
       goto bad;
   }
+  
+  // P3B - copy rearranged stack
+  // if (proc->pid != 1) {
+  for(i = USERTOP-PGSIZE; i < USERTOP; i += PGSIZE){ // P3B
+    if((pte = walkpgdir(pgdir, (void*)i, 0)) == 0)
+      panic("copyStackUvm: pte should exist");
+    if(!(*pte & PTE_P))
+      panic("copyStackUvm: page not present");
+    pa = PTE_ADDR(*pte);
+    if((mem = kalloc()) == 0)
+      goto bad;
+    memmove(mem, (char*)pa, PGSIZE);
+    if(mappages(d, (void*)i, PGSIZE, PADDR(mem), PTE_W|PTE_U) < 0)
+      goto bad;
+  }
+  // }
   // cprintf("testcopy\n"); // P3B
   return d;
 
@@ -332,6 +349,40 @@ bad:
   freevm(d);
   return 0;
 }
+
+// P3B
+// Given a parent process's page table, create a copy
+// of it for a child.
+// pde_t*
+// copyStackUvm(pde_t *pgdir, uint stackLow)
+// {
+//   pde_t *d;
+//   pte_t *pte;
+//   uint pa, i;
+//   char *mem;
+//   // cprintf("testcopy\n"); // P3B
+
+//   if((d = setupkvm()) == 0)
+//     return 0;
+//   for(i = stackLow; i < USERTOP; i += PGSIZE){ // P3B
+//     if((pte = walkpgdir(pgdir, (void*)i, 0)) == 0)
+//       panic("copyStackUvm: pte should exist");
+//     if(!(*pte & PTE_P))
+//       panic("copyStackUvm: page not present");
+//     pa = PTE_ADDR(*pte);
+//     if((mem = kalloc()) == 0)
+//       goto bad;
+//     memmove(mem, (char*)pa, PGSIZE);
+//     if(mappages(d, (void*)i, PGSIZE, PADDR(mem), PTE_W|PTE_U) < 0)
+//       goto bad;
+//   }
+//   // cprintf("testcopy\n"); // P3B
+//   return d;
+
+// bad:
+//   freevm(d);
+//   return 0;
+// }
 
 // Map user virtual address to kernel physical address.
 char*
