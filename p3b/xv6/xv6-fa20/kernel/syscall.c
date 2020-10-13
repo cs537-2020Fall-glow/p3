@@ -17,8 +17,10 @@
 int
 fetchint(struct proc *p, uint addr, int *ip)
 {
-  if(addr >= p->sz || addr+4 > p->sz)
+  if(addr >= USERTOP || addr+4 > USERTOP // P3B - check within stack upper addr
+    || addr < p->stackLow ) { // P3B - check within stack lower addr
     return -1;
+  }
   *ip = *(int*)(addr);
   return 0;
 }
@@ -30,8 +32,9 @@ int
 fetchstr(struct proc *p, uint addr, char **pp)
 {
   char *s, *ep;
-
-  if(addr >= p->sz)
+  
+  // P3B - check within moved stack
+  if(addr >= USERTOP || addr < p->stackLow)
     return -1;
   *pp = (char*)addr;
   ep = (char*)p->sz;
@@ -58,7 +61,8 @@ argptr(int n, char **pp, int size)
   
   if(argint(n, &i) < 0)
     return -1;
-  if((uint)i >= proc->sz || (uint)i+size > proc->sz)
+  // P3B - check within moved stack
+  if((uint)i >= USERTOP || (uint)i+size > USERTOP || (uint)i < proc->stackLow)
     return -1;
   *pp = (char*)i;
   return 0;
