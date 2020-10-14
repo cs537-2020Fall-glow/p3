@@ -19,8 +19,9 @@ USER_PROGS := \
 	zombie\
 	testFault\
 	testFirstCodeAddr\
-	testStackOnePage\
-	testHeap\
+	teststack1\
+	teststack2\
+	testheap1\
 
 USER_PROGS := $(addprefix user/, $(USER_PROGS))
 

@@ -172,7 +172,7 @@ fork(void)
   safestrcpy(np->name, proc->name, sizeof(proc->name));
   
   // P3 debugging
-  cprintf("fork() pid: %d, np->name: %s, np->tf->eax: %d\n", pid, np->name, np->tf->eax); // P3 debug
+  // cprintf("fork() pid: %d, np->name: %s, np->tf->eax: %d\n", pid, np->name, np->tf->eax); // P3 debug
   return pid;
 }
 

@@ -328,6 +328,7 @@ copyuvm(pde_t *pgdir, uint sz)
   }
   
   // P3B - copy rearranged stack
+  // currently fixed stack size, so don't need an extra param for copyuvm
   // if (proc->pid != 1) {
   for(i = USERTOP-PGSIZE; i < USERTOP; i += PGSIZE){ // P3B
     if((pte = walkpgdir(pgdir, (void*)i, 0)) == 0)

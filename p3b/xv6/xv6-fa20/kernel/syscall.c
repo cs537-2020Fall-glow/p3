@@ -17,8 +17,8 @@
 int
 fetchint(struct proc *p, uint addr, int *ip)
 {
-  if(addr >= USERTOP || addr+4 > USERTOP // P3B - check within stack upper addr
-    || addr < p->stackLow ) { // P3B - check within stack lower addr
+  if(addr+4 > USERTOP ) { //|| addr+4 > USERTOP // P3B - check within stack upper addr
+    //|| addr < p->stackLow ) { // P3B - check within stack lower addr
     return -1;
   }
   *ip = *(int*)(addr);
@@ -34,10 +34,10 @@ fetchstr(struct proc *p, uint addr, char **pp)
   char *s, *ep;
   
   // P3B - check within moved stack
-  if(addr >= USERTOP || addr < p->stackLow)
+  if(addr >= USERTOP ) //|| addr < p->stackLow)
     return -1;
   *pp = (char*)addr;
-  ep = (char*)p->sz;
+  ep = (char*) USERTOP; // P3B change from p-> sz to USERTOP
   for(s = *pp; s < ep; s++)
     if(*s == 0)
       return s - *pp;
@@ -48,7 +48,7 @@ fetchstr(struct proc *p, uint addr, char **pp)
 int
 argint(int n, int *ip)
 {
-  return fetchint(proc, proc->tf->esp + 4 + 4*n, ip);
+  return fetchint(proc, proc->tf->esp + 4 + 4*n, ip); // P3B esp correct already
 }
 
 // Fetch the nth word-sized system call argument as a pointer
