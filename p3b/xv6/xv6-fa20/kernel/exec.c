@@ -9,6 +9,7 @@
 int
 exec(char *path, char **argv)
 {
+  cprintf("**in exec**\n");
   char *s, *last;
   int i, off;
   uint argc, sz, sp, ustack[3+MAXARG+1];
@@ -16,7 +17,6 @@ exec(char *path, char **argv)
   struct inode *ip;
   struct proghdr ph;
   pde_t *pgdir, *oldpgdir;
-  // cprintf("test\n"); // P3B
 
   if((ip = namei(path)) == 0)
     return -1;
@@ -32,7 +32,6 @@ exec(char *path, char **argv)
   if((pgdir = setupkvm()) == 0)
     goto bad;
 
-  // cprintf("before load\n"); // P3B
   // Load program into memory.
   sz = 0x2000; // P3B
   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
@@ -44,39 +43,45 @@ exec(char *path, char **argv)
       goto bad;
     if((sz = allocuvm(pgdir, sz, ph.va + ph.memsz)) == 0)
       goto bad;
-    // cprintf("ph.va: %x, offset: %d, filesz: %d\n", (char*)ph.va, ph.offset, ph.filesz); // P3B
     if(loaduvm(pgdir, (char*)ph.va, ip, ph.offset, ph.filesz) < 0)
       goto bad;
   }
   iunlockput(ip);
   ip = 0;
-  
-  // cprintf("afterload\n"); // P3B
-  
+
   // Allocate a one-page stack at the next page boundary
   // P3B
+  sz = PGROUNDUP(sz); // does sz need to be page aligned?
   uint stackLow, stackHigh;
   stackLow = USERTOP-PGSIZE;
-  // cprintf("%x\n",stackLow);
-  sz = PGROUNDUP(sz);
-  // cprintf("%x\n",stackLow);
   if((stackHigh = allocuvm(pgdir, stackLow, USERTOP)) == 0)
     goto bad;
-  // cprintf("%x\n",stackLow);
-  // cprintf("%x\n",stackHigh);
+
+  // OLD:
+  // sz = PGROUNDUP(sz);
+  // if((sz = allocuvm(pgdir, sz, sz + PGSIZE)) == 0)
+  //   goto bad;
+
 
   // Push argument strings, prepare rest of stack in ustack.
   // P3B
   sp = stackHigh;
+
+  // OLD:
+  // sp = sz;
+
   for(argc = 0; argv[argc]; argc++) {
     if(argc >= MAXARG)
       goto bad;
     sp -= strlen(argv[argc]) + 1;
+    cprintf("exec: argv[%d] = %s\n", argc, argv[argc]);
+    cprintf("exec: sp after subtracting argc %d = %d\n", argc, sp);
     sp &= ~3;
-    // cprintf("argc: %d, sp: %x\n", argc, sp);
+    cprintf("exec: sp after bit comparison argc %d = %d\n", argc, sp);
     if(copyout(pgdir, sp, argv[argc], strlen(argv[argc]) + 1) < 0)
       goto bad;
     ustack[3+argc] = sp;
+    cprintf("exec: sp at end of loop argc %d = %d\n", argc, sp);
   }
   ustack[3+argc] = 0;
 
@@ -85,6 +90,7 @@ exec(char *path, char **argv)
   ustack[2] = sp - (argc+1)*4;  // argv pointer
 
   sp -= (3+argc+1) * 4;
+  cprintf("exec: sp after subtracting before copyout = %d\n", sp);
   if(copyout(pgdir, sp, ustack, (3+argc+1)*4) < 0)
     goto bad;
 
@@ -101,14 +107,13 @@ exec(char *path, char **argv)
   proc->stackLow = stackLow; // P3B
   proc->tf->eip = elf.entry;  // main
   proc->tf->esp = sp;
+  //proc->tf->esp = 0x2000; // testing
   switchuvm(proc);
   freevm(oldpgdir);
-  
-  // P3B - testing
-  // cprintf("sp: %x\n", sp);
-  // cprintf("ustack[0]: %x\n", &ustack[0]);
-  // cprintf("ustack[1]: %x\n", &ustack[1]);
-  // cprintf("ustack[2]: %x\n", &ustack[2]);
+
+  cprintf("exec: sz = %d\n", proc->sz);
+  cprintf("exec: esp = %d\n", proc->tf->esp);
+  cprintf("exec: eip = %d\n", proc->tf->eip);
 
   return 0;
 
