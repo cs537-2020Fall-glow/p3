@@ -17,10 +17,29 @@
 int
 fetchint(struct proc *p, uint addr, int *ip)
 {
-  if(addr >= USERTOP || addr+4 > USERTOP // P3B - check within stack upper addr
-    || addr < p->stackLow ) { // P3B - check within stack lower addr
+  // if(addr >= USERTOP || addr+4 > USERTOP // P3B - check within stack upper addr
+  //   || addr < p->stackLow ) { // P3B - check within stack lower addr
+  //   return -1;
+  // }
+
+  //cprintf("  fetchint: addr = %d\n", addr);
+
+  // OLD
+  // if(addr >= p->sz || addr+4 > p->sz)
+  //   return -1;
+  // *ip = *(int*)(addr);
+  // return 0;
+
+  // NEW
+  if (addr+4 > USERTOP) { // P3B Testing
+    cprintf("!!! fetchint failed !!!\n");
     return -1;
   }
+  if (addr >= p->sz && addr < p->stackLow) {
+    cprintf("!!! fetchint failed !!!\n");
+    return -1;
+  }
+
   *ip = *(int*)(addr);
   return 0;
 }
@@ -34,10 +53,38 @@ fetchstr(struct proc *p, uint addr, char **pp)
   char *s, *ep;
   
   // P3B - check within moved stack
-  if(addr >= USERTOP || addr < p->stackLow)
+  // if(addr >= USERTOP || addr < p->stackLow)
+  //   return -1;
+
+  //cprintf("  fetchstr: addr = %d\n", addr);
+
+  // OLD
+  // if(addr >= p->sz)
+  //   return -1;
+  // *pp = (char*)addr;
+  // ep = (char*)p->sz;
+  // for(s = *pp; s < ep; s++)
+  //   if(*s == 0)
+  //     return s - *pp;
+  // return -1;
+
+  // NEW
+  if(addr >= USERTOP) { // P3B Testing
+    cprintf("!!! fetchstr failed !!!\n");
     return -1;
-  *pp = (char*)addr;
-  ep = (char*)p->sz;
+  }
+  if (addr >= p->sz && addr < p->stackLow) {
+    cprintf("!!! fetchstr failed !!!\n");
+    return -1;
+  }
+  if (addr < p->sz) {
+    *pp = (char*)addr;
+    ep = (char*)p->sz;
+  } else {
+    *pp = (char*)addr;
+    ep = (char*)USERTOP;
+  }
+
   for(s = *pp; s < ep; s++)
     if(*s == 0)
       return s - *pp;
@@ -48,6 +95,7 @@ fetchstr(struct proc *p, uint addr, char **pp)
 int
 argint(int n, int *ip)
 {
+  //cprintf(" in argint: name = %s esp = %d ip = %p\n", proc->name, proc->tf->esp, ip);
   return fetchint(proc, proc->tf->esp + 4 + 4*n, ip);
 }
 
@@ -57,12 +105,26 @@ argint(int n, int *ip)
 int
 argptr(int n, char **pp, int size)
 {
+  //cprintf(" in argptr: sz = %d\n", proc->sz);
+
   int i;
   
   if(argint(n, &i) < 0)
     return -1;
   // P3B - check within moved stack
-  if((uint)i >= USERTOP || (uint)i+size > USERTOP || (uint)i < proc->stackLow)
+  // if((uint)i >= USERTOP || (uint)i+size > USERTOP || (uint)i < proc->stackLow)
+    // return -1;
+
+  // OLD
+  // if((uint)i >= proc->sz || (uint)i+size > proc->sz)
+  //   return -1;
+  // *pp = (char*)i;
+  // return 0;
+
+  // NEW
+  if(((uint)i >= proc->sz || (uint)i+size > proc->sz) && (uint)i < proc->stackLow)
+    return -1;
+  if((uint)i >= USERTOP || (uint)i+size > USERTOP)
     return -1;
   *pp = (char*)i;
   return 0;
@@ -75,6 +137,8 @@ argptr(int n, char **pp, int size)
 int
 argstr(int n, char **pp)
 {
+  //cprintf(" in argstr: name = %s esp = %d\n", proc->name, proc->tf->esp);
+
   int addr;
   if(argint(n, &addr) < 0)
     return -1;

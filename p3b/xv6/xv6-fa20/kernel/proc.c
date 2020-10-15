@@ -67,6 +67,9 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+  
+  cprintf("allocproc: pid %d sp = %d\n", p->pid, sp);
+  cprintf("allocproc: pid %d eip = %d\n", p->pid, p->context->eip);
 
   return p;
 }
@@ -75,6 +78,7 @@ found:
 void
 userinit(void)
 {
+  cprintf("**in userinit**\n");
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
   
@@ -93,15 +97,16 @@ userinit(void)
   p->tf->eflags = FL_IF;
   p->tf->esp = PGSIZE+0x2000; // P3B
   p->tf->eip = 0x2000;  // beginning of initcode.S // P3B
-  // cprintf("1\n"); // P3B
   
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
-  // cprintf("2\n"); // P3B
+
+  cprintf("userinit: sz = %d\n", p->sz);
+  cprintf("userinit: esp = %d\n", p->tf->esp);
+  cprintf("userinit: eip = %d\n", p->tf->eip);
 
   p->state = RUNNABLE;
   release(&ptable.lock);
-  // cprintf("3\n"); // P3B
 }
 
 // Grow current process's memory by n bytes.
@@ -130,7 +135,7 @@ growproc(int n)
 int
 fork(void)
 {
-  // cprintf("test\n"); // P3B
+  cprintf("**in fork**\n");
   int i, pid;
   struct proc *np;
 
@@ -147,13 +152,6 @@ fork(void)
     return -1;
   }
   np->sz = proc->sz;
-  // // P3B - copy stack
-  // if((np->pgdir = copyStackUvm(proc->pgdir, proc->stackLow)) == 0){
-  //   kfree(np->kstack);
-  //   np->kstack = 0;
-  //   np->state = UNUSED;
-  //   return -1;
-  // }
   np->stackLow = proc->stackLow;
   // cprintf("fork np->stackLow: %x\n", np->stackLow); // P3B debug
   np->parent = proc;
@@ -172,7 +170,11 @@ fork(void)
   safestrcpy(np->name, proc->name, sizeof(proc->name));
   
   // P3 debugging
-  cprintf("fork() pid: %d, np->name: %s, np->tf->eax: %d\n", pid, np->name, np->tf->eax); // P3 debug
+  //cprintf("fork() pid: %d, np->name: %s, np->tf->eax: %d\n", pid, np->name, np->tf->eax); // P3 debug
+  cprintf("fork: sz = %d\n", np->sz);
+  cprintf("fork: esp = %d\n", np->tf->esp);
+  cprintf("fork: eip = %d\n", np->tf->eip);
+  cprintf("fork: stackLow = %d\n", np->stackLow);
   return pid;
 }
 
@@ -182,6 +184,7 @@ fork(void)
 void
 exit(void)
 {
+  cprintf("**in exit**\n"); // P3B
   struct proc *p;
   int fd;
 
