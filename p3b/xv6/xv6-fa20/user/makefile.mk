@@ -21,6 +21,12 @@ USER_PROGS := \
 	testFirstCodeAddr\
 	teststack1\
 	teststack2\
+	teststack3\
+	teststack4\
+	teststack5\
+	teststack6\
+	teststack7\
+	teststack8\
 	testheap1\
 
 USER_PROGS := $(addprefix user/, $(USER_PROGS))

@@ -13,6 +13,15 @@ extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
 
+// P3B - modularize
+static void killUserProc(struct trapframe *tf) {
+  cprintf("pid %d %s: trap %d err %d on cpu %d "
+      "eip 0x%x addr 0x%x--kill proc\n",
+      proc->pid, proc->name, tf->trapno, tf->err, cpu->id, tf->eip, 
+      rcr2());
+    proc->killed = 1;
+}
+
 void
 tvinit(void)
 {
@@ -43,6 +52,8 @@ trap(struct trapframe *tf)
       exit();
     return;
   }
+  
+  uint newPageTop;
 
   switch(tf->trapno){
   case T_IRQ0 + IRQ_TIMER:
@@ -75,7 +86,26 @@ trap(struct trapframe *tf)
             cpu->id, tf->cs, tf->eip);
     lapiceoi();
     break;
-   
+  case T_PGFLT: // P3B - allocate new page for stack
+    // 5 guard pages between heap and stack
+    if (proc->stackLow - proc->sz <= PGSIZE*6) {
+      killUserProc(tf);
+      break;
+    }
+    // Ensure adjacent page to stack
+    if (rcr2() < proc->stackLow-PGSIZE) {
+      killUserProc(tf);
+      break;
+    }
+    // Keep growing stack if addr is in next page
+    // cprintf("keep growing\n");
+    if ((newPageTop = allocuvm(proc->pgdir, proc->stackLow - PGSIZE, proc->stackLow)) == 0) { 
+      killUserProc(tf);
+    } else {
+      proc->stackLow = proc->stackLow - PGSIZE;
+    }
+    break;
+    
   default:
     if(proc == 0 || (tf->cs&3) == 0){
       // In kernel, it must be our mistake.
