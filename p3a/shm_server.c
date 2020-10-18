@@ -24,7 +24,6 @@ void exit_handler(int sig)
 	munmap(ptr, getpagesize());
 	shm_unlink(SHM_NAME);
     
-	printf("Exited process\n");
 	exit(0);
 }
 
@@ -46,7 +45,6 @@ int main(int argc, char *argv[])
 	if (ptr == MAP_FAILED) {
 		exit(1);
 	}
-	printf("Server ptr = %p\n", ptr);
 
     // Initializing mutex
 	pthread_mutexattr_init(&mutexAttribute);
@@ -68,13 +66,12 @@ int main(int argc, char *argv[])
 		iteration++;
 
 		// read contents of shared memory
-		union seg_t proc;
+		union seg_t *proc;
 		for (int i = 0; i < MAX_CLIENTS; i++) {
-			proc = clients[i];
+			proc = &clients[i];
 			// display statistics for each client process
-			// [Iteration], pid : [pid], birth : [dateOfBirth], elapsed : [sec] s [msec] ms, [clientString]
-			if (proc.stats.pid != 0) {
-				printf("%d, pid : %d, birth : %s, elapsed : %d s %f ms, %s\n", iteration, proc.stats.pid, proc.stats.birth, proc.stats.elapsed_sec, proc.stats.elapsed_msec, proc.stats.clientString);
+			if (proc->stats.pid != 0) {
+				printf("%d, pid : %d, birth : %s, elapsed : %d s %f ms, %s\n", iteration, proc->stats.pid, proc->stats.birth, proc->stats.elapsed_sec, proc->stats.elapsed_msec, proc->stats.clientString);
 			}
 		}
 		

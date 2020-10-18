@@ -8,6 +8,7 @@
 #include "stats.h"
 #include "signal.h"
 #include "string.h"
+#include "time.h"
 
 #define MAX_CLIENTS 63
 #define SHM_NAME "/kokesh_low"
@@ -16,14 +17,25 @@
 pthread_mutex_t* mutex;
 union seg_t *clients;
 void *ptr;
+union seg_t *proc;
 
 void exit_handler(int sig) {
-    // ADD
 
     // critical section begins
 	pthread_mutex_lock(mutex);
 
     // Client leaving; needs to reset its segment   
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+	    proc = &clients[i];
+		if (proc->stats.pid == getpid()) {
+			proc->stats.pid = 0;
+            proc->stats.elapsed_msec = 0;
+            proc->stats.elapsed_sec = 0;
+            proc->stats.start_time = 0;
+            memset(proc->stats.birth, 0, sizeof(proc->stats.birth));
+            memset(proc->stats.clientString, 0, sizeof(proc->stats.clientString));
+		}
+	}
 
 	pthread_mutex_unlock(mutex);
 	// critical section ends
@@ -55,47 +67,67 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-    printf("Client ptr = %p\n", ptr);
-
     mutex = ptr;
 	
     // critical section begins
     pthread_mutex_lock(mutex);
         
 	// client updates available segment
-    union seg_t proc;
     clients = ptr + 64;
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
-        proc = clients[i];
+        proc = &clients[i];
         // display statistics for each client process
         // [Iteration], pid : [pid], birth : [dateOfBirth], elapsed : [sec] s [msec] ms, [clientString]
-        if (proc.stats.pid == 0)
+        if (proc->stats.pid == 0)
         {
-            printf("i = %d\n", i);
-            proc.stats.pid = getpid();
-            strcpy(proc.stats.clientString, argv[1]);
-            proc.stats.elapsed_msec = 0;
-            proc.stats.elapsed_sec = 0;
-            strcpy(proc.stats.birth, "test"); // TODO
+            proc->stats.pid = getpid();
+            strcpy(proc->stats.clientString, argv[1]);
+            proc->stats.elapsed_msec = 0;
+            proc->stats.elapsed_sec = 0;
+            proc->stats.start_time = clock();
+            time_t current_time = time(NULL);
+            char *c_time = ctime(&current_time);
+            c_time[24] = '\0';
+            memcpy(proc->stats.birth, c_time, sizeof(proc->stats.birth));
 
-
-            
-            printf("pid : %d, birth : %s, elapsed : %d s %f ms, %s\n", proc.stats.pid, proc.stats.birth, proc.stats.elapsed_sec, proc.stats.elapsed_msec, proc.stats.clientString);
             break;
         }
     }
 
     pthread_mutex_unlock(mutex);
     // critical section ends
+
+    struct sigaction act;
+	act.sa_handler = exit_handler;
+	sigaction(SIGINT, &act, NULL);
+	sigaction(SIGTERM, &act, NULL);
         
 	while (1) {
-        
-		// ADD
         
         sleep(1);
 
 		// Print active clients
+        printf("Active clients :");
+        
+        proc = NULL;
+		for (int i = 0; i < MAX_CLIENTS; i++) {
+			proc = &clients[i];
+			if (proc->stats.pid != 0) {
+				printf(" %d", proc->stats.pid);
+			}
+            if (proc->stats.pid == getpid()) {
+                clock_t cur_time = clock();
+                //printf("cur_time = %ld\n", cur_time);
+                double total_sec = (double) (cur_time - proc->stats.start_time) / CLOCKS_PER_SEC;
+                //printf("total_sec = %f\n", total_sec);
+                proc->stats.elapsed_sec = (int) total_sec;
+                //printf("elapsed_sec = %d\n", proc->stats.elapsed_sec);
+                proc->stats.elapsed_msec = ((total_sec - proc->stats.elapsed_sec) * 1000);
+                //printf("elapsed_msec = %f\n", proc->stats.elapsed_msec);
+            }
+		}
+        printf("\n");
     }
 
     return 0;
