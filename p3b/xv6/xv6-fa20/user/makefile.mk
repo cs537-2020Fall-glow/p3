@@ -29,6 +29,7 @@ USER_PROGS := \
 	teststack8\
 	teststackpiazza198\
 	testheap1\
+	heap\
 
 USER_PROGS := $(addprefix user/, $(USER_PROGS))
 

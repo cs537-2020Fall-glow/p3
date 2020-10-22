@@ -50,3 +50,5 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+p3b/xv6/xv6-fa20/runtests.log
+p3b/xv6/xv6-fa20/runtests.log
