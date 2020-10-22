@@ -88,7 +88,7 @@ trap(struct trapframe *tf)
     break;
   case T_PGFLT: // P3B - allocate new page for stack
     // 5 guard pages between heap and stack
-    if (proc->stackLow - proc->sz <= PGSIZE*6) {
+    if (proc->stackLow - proc->sz <= PGSIZE*5) {
       killUserProc(tf);
       break;
     }
