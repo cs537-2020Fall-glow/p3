@@ -26,11 +26,9 @@ fetchint(struct proc *p, uint addr, int *ip)
 
   // NEW
   if (addr+4 > USERTOP || addr < 0x2000) { // P3B
-    cprintf("!!! fetchint failed !!!\n");
     return -1;
   }
   if (addr >= p->sz && addr < p->stackLow) {
-    cprintf("!!! fetchint failed !!!\n");
     return -1;
   }
 
@@ -58,11 +56,9 @@ fetchstr(struct proc *p, uint addr, char **pp)
 
   // NEW
   if(addr >= USERTOP || addr < 0x2000) { // P3B
-    cprintf("!!! fetchstr failed !!!\n");
     return -1;
   }
   if (addr >= p->sz && addr < p->stackLow) {
-    cprintf("!!! fetchstr failed !!!\n");
     return -1;
   }
   if (addr < p->sz) {
