@@ -9,7 +9,6 @@
 int
 exec(char *path, char **argv)
 {
-  cprintf("**in exec**\n");
   char *s, *last;
   int i, off;
   uint argc, sz, sp, ustack[3+MAXARG+1];
@@ -51,7 +50,7 @@ exec(char *path, char **argv)
 
   // Allocate a one-page stack at the next page boundary
   // P3B
-  sz = PGROUNDUP(sz); // does sz need to be page aligned?
+  sz = PGROUNDUP(sz);
   uint stackLow, stackHigh;
   stackLow = USERTOP-PGSIZE;
   if((stackHigh = allocuvm(pgdir, stackLow, USERTOP)) == 0)
@@ -74,14 +73,10 @@ exec(char *path, char **argv)
     if(argc >= MAXARG)
       goto bad;
     sp -= strlen(argv[argc]) + 1;
-    cprintf("exec: argv[%d] = %s\n", argc, argv[argc]);
-    cprintf("exec: sp after subtracting argc %d = %d\n", argc, sp);
     sp &= ~3;
-    cprintf("exec: sp after bit comparison argc %d = %d\n", argc, sp);
     if(copyout(pgdir, sp, argv[argc], strlen(argv[argc]) + 1) < 0)
       goto bad;
     ustack[3+argc] = sp;
-    cprintf("exec: sp at end of loop argc %d = %d\n", argc, sp);
   }
   ustack[3+argc] = 0;
 
@@ -90,7 +85,6 @@ exec(char *path, char **argv)
   ustack[2] = sp - (argc+1)*4;  // argv pointer
 
   sp -= (3+argc+1) * 4;
-  cprintf("exec: sp after subtracting before copyout = %d\n", sp);
   if(copyout(pgdir, sp, ustack, (3+argc+1)*4) < 0)
     goto bad;
 
@@ -107,13 +101,8 @@ exec(char *path, char **argv)
   proc->stackLow = stackLow; // P3B
   proc->tf->eip = elf.entry;  // main
   proc->tf->esp = sp;
-  //proc->tf->esp = 0x2000; // testing
   switchuvm(proc);
   freevm(oldpgdir);
-
-  cprintf("exec: sz = %d\n", proc->sz);
-  cprintf("exec: esp = %d\n", proc->tf->esp);
-  cprintf("exec: eip = %d\n", proc->tf->eip);
 
   return 0;
 
