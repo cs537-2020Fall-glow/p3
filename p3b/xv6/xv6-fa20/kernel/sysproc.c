@@ -9,14 +9,12 @@
 int
 sys_fork(void)
 {
-  cprintf("**in sys_fork**\n");  // P3B
   return fork();
 }
 
 int
 sys_exit(void)
 {
-  cprintf("**in sys_exit**\n");  // P3B
   exit();
   return 0;  // not reached
 }

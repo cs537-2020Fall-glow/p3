@@ -67,9 +67,6 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
-  
-  cprintf("allocproc: pid %d sp = %d\n", p->pid, sp);
-  cprintf("allocproc: pid %d eip = %d\n", p->pid, p->context->eip);
 
   return p;
 }
@@ -78,7 +75,6 @@ found:
 void
 userinit(void)
 {
-  cprintf("**in userinit**\n");
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
   
@@ -100,10 +96,6 @@ userinit(void)
   
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
-
-  cprintf("userinit: sz = %d\n", p->sz);
-  cprintf("userinit: esp = %d\n", p->tf->esp);
-  cprintf("userinit: eip = %d\n", p->tf->eip);
 
   p->state = RUNNABLE;
   release(&ptable.lock);
@@ -135,7 +127,6 @@ growproc(int n)
 int
 fork(void)
 {
-  cprintf("**in fork**\n");
   int i, pid;
   struct proc *np;
 
@@ -153,7 +144,6 @@ fork(void)
   }
   np->sz = proc->sz;
   np->stackLow = proc->stackLow;
-  // cprintf("fork np->stackLow: %x\n", np->stackLow); // P3B debug
   np->parent = proc;
   *np->tf = *proc->tf;
 
@@ -169,12 +159,6 @@ fork(void)
   np->state = RUNNABLE;
   safestrcpy(np->name, proc->name, sizeof(proc->name));
   
-  // P3 debugging
-  //cprintf("fork() pid: %d, np->name: %s, np->tf->eax: %d\n", pid, np->name, np->tf->eax); // P3 debug
-  cprintf("fork: sz = %d\n", np->sz);
-  cprintf("fork: esp = %d\n", np->tf->esp);
-  cprintf("fork: eip = %d\n", np->tf->eip);
-  cprintf("fork: stackLow = %d\n", np->stackLow);
   return pid;
 }
 
@@ -184,7 +168,6 @@ fork(void)
 void
 exit(void)
 {
-  cprintf("**in exit**\n"); // P3B
   struct proc *p;
   int fd;
 
