@@ -100,6 +100,8 @@ int main(int argc, char *argv[]) {
 
     struct sigaction act;
 	act.sa_handler = exit_handler;
+    act.sa_flags = 0;
+    sigemptyset(&act.sa_mask);
 	sigaction(SIGINT, &act, NULL);
 	sigaction(SIGTERM, &act, NULL);
         

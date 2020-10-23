@@ -53,3 +53,5 @@ dkms.conf
 
 runtests.log
 **/runtests.log
+p3a/output.txt
+p3a/vg_summary.xml
