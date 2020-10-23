@@ -51,7 +51,6 @@ sys_sbrk(void)
     return -1;
   // P3B - heap growing into stack
   if(proc->sz + n + (PGSIZE*5) > proc->stackLow) {
-    // cprintf("stackLow: %d, sz: %d, n: %d, heap will grow to: %d, 5 under stackLow: %d\n", proc->stackLow, proc->sz, n, proc->sz + n, proc->stackLow - (PGSIZE*5));
     return -1;
   }
   addr = proc->sz;
