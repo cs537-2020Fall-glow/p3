@@ -1,34 +1,86 @@
-Part I
-initialprocess
+# P3B
+## Part I: Null Pointer Dereference
 
-vm.c inituvm():
-- mappages(pgdir, (void*) 0x2000, PGSIZE, PADDR(mem), PTE_W|PTE_U);
+For the initial process,
+- vm.c inituvm()
+  - start mapping pages at 0x2000 instead of 0
+  
+- proc.c userinit()
+  - p->sz, the high address of mapped memory, needs to start 0x2000 higher than 
+    before (PGSIZE+0x2000)
+  - p->tf->esp, the high address of the stack, needs to start 0x2000 higher than
+    before (PGSIZE+0x2000)
+  - p->tf->eip, the instruction pointer, starts at the first address of the code
+    segment (now 0x2000)
+      
+- exec.c exec()
+  - sz marks the first address of the code segment, updated to 0x2000
+  
+- vm.c copyuvm()
+  - fork calls copyuvm to copy the code, stack, and heap. The original copyuvm()
+    starts at address 0. Updated to 0x2000.
+      
+- kernel makefile and user makefile
+  - for the initial process, needs to start at 0x2000
+  
+## Part II: xv6 Memory Layout
+### Moving the stack to the top of mapped memory
+- proc.h
+  - use proc.stackLow member to track the lowest mapped address of the stack.
+    Assume the highest address of the stack is USERTOP.
 
-proc.c
-userinit():
-p->sz = PGSIZE+0x2000;
-p->tf->esp = PGSIZE+0x2000;
-p->tf->eip = 0x2000;  // beginning of initcode.S
+- exec.c exec()
+  - allocate initial one page stack below USERTOP instead of after the code
+    segment
+  - sz unchanged (still immediately after code, but no longer updated because
+    we have stackLow and sp to track stack segment)
+  - sp starts at stackHigh, which is USERTOP, and decreases as the stack grows
+    downward
+  - stackLow set to lowest mapped address, which starts one page below USERTOP
 
-objdump -d fs/fault | less
+- vm.c copyuvm() - called from fork
+  - Need to copy the code+heap and stack segments separately. Separately loop
+    over code+heap segment and loop over stack segment to copy each segment.
+      
+- syscall.c fetchint(), fetchstr(), argptr()
+  - All bound checking needs to be updated to account for separating the stack
+    segment from the code+heap
 
-exec.c
-exec()
-sz = 0x2000;
+### Growing the stack
+- trap.c trap()
+  - Add new switch case for T_PGFLT. New code used to grow stack as detected by
+    a page fault trap
+  - If in the 5 guard pages, then kill user process (do not grow stack if it 
+    would grow into heap)
+  - If not in the next adjacent page under stack, then kill user process (do not
+    grow stack if requesting an address beyond the adjacent page)
+  - Otherwise, keep growing stack page-by-page using allocuvm()
 
-fork calls copyuvm
-vm.c
-copyuvm()
-for(i = 0x2000; i < sz; i += PGSIZE){
-
-kernel/makefile.mk
-		--entry=start --section-start=.text=0x2000 \
-		
-user/makefile.mk
-USER_LDFLAGS += --section-start=.text=0x2000
+- sysproc.c sys_sbrk()
+  - To prevent heap from growing into stack, check that the requested bytes do
+    not trespass the 5 guard pages. Fail the sbrk() by returning -1 if it does.
 
 
-Part II
-stackSize
-allocuvm(pgdir,USERTOP-PGSIZE,PGSIZE)
-sp = stackSize
+
+Files changed:
+p3b/xv6/xv6-fa20/kernel/defs.h
+p3b/xv6/xv6-fa20/kernel/exec.c
+p3b/xv6/xv6-fa20/kernel/proc.c
+p3b/xv6/xv6-fa20/kernel/syscall.c
+p3b/xv6/xv6-fa20/kernel/sysproc.c
+p3b/xv6/xv6-fa20/kernel/trap.c
+p3b/xv6/xv6-fa20/kernel/vm.c
+p3b/xv6/xv6-fa20/user/makefile.mk
+Tests (so far):
+p3b/xv6/xv6-fa20/user/heap.c
+p3b/xv6/xv6-fa20/user/testStackOnePage.c
+p3b/xv6/xv6-fa20/user/testheap1.c
+p3b/xv6/xv6-fa20/user/teststack1.c
+p3b/xv6/xv6-fa20/user/teststack2.c
+p3b/xv6/xv6-fa20/user/teststack3.c
+p3b/xv6/xv6-fa20/user/teststack4.c
+p3b/xv6/xv6-fa20/user/teststack5.c
+p3b/xv6/xv6-fa20/user/teststack6.c
+p3b/xv6/xv6-fa20/user/teststack7.c
+p3b/xv6/xv6-fa20/user/teststack8.c
+p3b/xv6/xv6-fa20/user/teststackpiazza198.c
