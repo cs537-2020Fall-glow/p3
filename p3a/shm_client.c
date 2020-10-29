@@ -9,6 +9,7 @@
 #include "stats.h"
 #include "string.h"
 #include "time.h"
+#include <stdbool.h>
 
 #define MAX_CLIENTS 63
 #define SHM_NAME "/kokesh_low"
@@ -30,9 +31,7 @@ void exit_handler(int sig) {
       proc->stats.pid = 0;
       proc->stats.elapsed_msec = 0;
       proc->stats.elapsed_sec = 0;
-      memset(&proc->stats.start_elapsed_time, 0,
-             sizeof(struct timespec));
-      proc->stats.start_time = 0;
+      proc->stats.birth_seconds = 0;
       memset(proc->stats.birth, 0, sizeof(proc->stats.birth));
       memset(proc->stats.clientString, 0, sizeof(proc->stats.clientString));
     }
@@ -45,7 +44,6 @@ void exit_handler(int sig) {
 }
 
 int main(int argc, char *argv[]) {
-  // ADD
   if (argc != 2) {
     exit(1);
   }
@@ -74,6 +72,7 @@ int main(int argc, char *argv[]) {
   pthread_mutex_lock(mutex);
 
   // client updates available segment
+  bool found = false;
   clients = ptr + 64;
   for (int i = 0; i < MAX_CLIENTS; i++) {
     proc = &clients[i];
@@ -81,18 +80,16 @@ int main(int argc, char *argv[]) {
     // [Iteration], pid : [pid], birth : [dateOfBirth], elapsed : [sec] s [msec]
     // ms, [clientString]
     if (proc->stats.pid == 0) {
+      found = true;
       proc->stats.pid = getpid();
       strcpy(proc->stats.clientString, argv[1]);
-
-      // use timespec for elapsed time
       proc->stats.elapsed_msec = 0;
       proc->stats.elapsed_sec = 0;
 
-      // use clock() for birth time
-      long timespec_start_seconds;
       struct timespec ts;
       timespec_get(&ts, TIME_UTC);
-      proc->stats.start_time = clock();
+      proc->stats.birth_seconds = ts.tv_sec;
+
       time_t current_time = time(NULL);
       char *c_time = ctime(&current_time);
       c_time[24] = '\0';
@@ -101,9 +98,13 @@ int main(int argc, char *argv[]) {
       break;
     }
   }
-
+  
   pthread_mutex_unlock(mutex);
   // critical section ends
+  
+  if (!found) {
+    exit(1);
+  }
 
   struct sigaction act;
   act.sa_handler = exit_handler;
@@ -127,11 +128,9 @@ int main(int argc, char *argv[]) {
       if (proc->stats.pid == getpid()) {
         struct timespec current_elapsed_time;
         timespec_get(&current_elapsed_time, TIME_UTC);
-        proc->stats.elapsed_sec = (int)current_elapsed_time.tv_sec -
-                                  proc->stats.start_elapsed_time.tv_sec;
-        proc->stats.elapsed_msec = ((current_elapsed_time.tv_nsec -
-                                     proc->stats.start_elapsed_time.tv_nsec) /
-                                    1000000.0);
+        proc->stats.elapsed_sec =
+            (int)current_elapsed_time.tv_sec - proc->stats.birth_seconds;
+        proc->stats.elapsed_msec = current_elapsed_time.tv_nsec / 1000000.0;
       }
     }
     printf("\n");
