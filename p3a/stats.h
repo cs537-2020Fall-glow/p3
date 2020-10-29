@@ -1,11 +1,11 @@
 
 typedef struct {
-    int pid;
-    char birth[25];
-    char clientString[10];
-    int elapsed_sec;
-    double elapsed_msec;
-    clock_t start_time;
+    int pid; // 4
+    char birth[25]; // 25
+    char clientString[10]; // 10
+    int elapsed_sec; // 4
+    double elapsed_msec; // 8
+    long birth_seconds; // 8
 } stats_t;
 
 union seg_t {

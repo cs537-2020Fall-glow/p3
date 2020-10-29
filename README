@@ -60,8 +60,6 @@ For the initial process,
   - To prevent heap from growing into stack, check that the requested bytes do
     not trespass the 5 guard pages. Fail the sbrk() by returning -1 if it does.
 
-
-
 Files changed:
 p3b/xv6/xv6-fa20/kernel/defs.h
 p3b/xv6/xv6-fa20/kernel/exec.c
@@ -84,3 +82,57 @@ p3b/xv6/xv6-fa20/user/teststack6.c
 p3b/xv6/xv6-fa20/user/teststack7.c
 p3b/xv6/xv6-fa20/user/teststack8.c
 p3b/xv6/xv6-fa20/user/teststackpiazza198.c
+
+# P3A
+## data structures
+  - use union seg_t to ensure the client segments are 64 bytes
+  
+## shm_server
+- Setup
+  - Create and map memory page using shm_open()
+  - Truncate file to single page using ftruncate() and getpagesize()
+  - Map the memory page for sharing using mmap()
+- Mutex initialization
+  - Intialize shareable mutex lock in the first 64 byte segment of the shared
+    memory page using p_thread_* functions as specified in the design and 
+    provided skeleton code.
+  - The remaining 63 segments are for storing client data. This is done by 
+    setting start of the client segments 64 bytes after the starting address of
+    the shared memory page. Later on in the while loop, we can use array indices
+    to loop over the client segments.
+- Terminating the server process
+  - Set up signal handlers by linking SIGINT and SIGTERM to the function pointer.
+  - Calls exit_handler() to clean up the server process.
+  - Unmaps and closes the shared memory page.
+- Printing server output
+  - Enters infinite while loop.
+  - Treats any segments where pid = 0 as empty.
+  - Otherwise, if segment pid is not 0, outputs according to specification.
+  
+## shm_client
+- Setup
+  - Invalid input args - exit:
+    - Must specify the client string
+    - Client string cannot exceed 9 characters
+  - Open existing shared memory page using shm_open()
+  - Map shared memory using mmap()
+- Mutex lock
+  - Set up the shared mutex lock by setting the mutex lock to the first byte of 
+    the shared memory (recall we use first segment to store shared mutex)
+  - Critical sections for the client are the initialization and the termination.
+    - Can have conflict where two clients try to reserve the same segment.
+    - Can have conflict where multiple processes attempt to terminate same client. ***test this?
+- Terminating the client process
+  - Same as server process, link SIGINT and SIGTERM to exit_handler()
+  - Clean up the client segment and free it for reuse by setting pid = 0.
+- Reservation
+  - Find the first open segment by traversing and finding pid = 0.
+  - Initialize stats_t struct
+  - Use library functions timespec_get and ctime for the birth string and birth seconds
+  - Max clients
+    - After looping through shared memory for an open spot, exit if available spot not found.
+- Printing client output
+  - Enter infinite while loop.
+  - Traverse segments, again using client array indices.
+  - Assume any pid != 0 is a valid client segment to print.
+  - Calculate elapsed seconds and milliseconds using timespec_get to retrieve current time.
